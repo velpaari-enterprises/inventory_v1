@@ -1,6 +1,7 @@
 const Return = require('../models/Return');
 const Product = require('../models/Product');
 const mongoose = require('mongoose');
+const { emitEvent } = require('../utils/socket');
 
 // Get all returns
 const getAllReturns = async (req, res) => {
@@ -213,6 +214,10 @@ const createReturn = async (req, res) => {
       ? `${category} return processed successfully and inventory quantities updated`
       : `${category} return recorded successfully (record only, no inventory changes)`;
     
+    emitEvent('returns:changed', { action: 'created', id: savedReturn._id });
+    if (category === 'RTO') {
+      emitEvent('inventory:changed', { action: 'return-created', id: savedReturn._id });
+    }
     res.status(201).json({
       message: message,
       return: populatedReturn,
@@ -261,6 +266,10 @@ const updateReturn = async (req, res) => {
       return res.status(404).json({ message: 'Return not found' });
     }
 
+    emitEvent('returns:changed', { action: 'updated', id: updatedReturn._id });
+    if (updatedReturn.category === 'RTO') {
+      emitEvent('inventory:changed', { action: 'return-updated', id: updatedReturn._id });
+    }
     res.status(200).json({
       message: 'Return updated successfully',
       return: updatedReturn
@@ -318,6 +327,10 @@ const deleteReturn = async (req, res) => {
       ? 'RTO return deleted successfully and product quantities adjusted'
       : 'RPU return deleted successfully (no inventory changes)';
 
+    emitEvent('returns:changed', { action: 'deleted', id });
+    if (returnRecord.category === 'RTO') {
+      emitEvent('inventory:changed', { action: 'return-deleted', id });
+    }
     res.status(200).json({ 
       message: deleteMessage
     });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -41,6 +41,7 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material';
 import { combosAPI, productsAPI, productMastersAPI, barcodesAPI, categoriesAPI } from '../services/api';
+import { socket } from '../services/socket';
 
 
 
@@ -118,26 +119,7 @@ const Combos = () => {
   const [selectedProduct, setSelectedProduct] = useState('');
   const [productQuantity, setProductQuantity] = useState(1);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      await Promise.all([
-        fetchCombos(),
-        fetchProducts(),
-        fetchCategories()
-      ]);
-    } catch (error) {
-      showError('Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchCombos = async () => {
+  const fetchCombos = useCallback(async () => {
     try {
       console.log('Fetching combos...');
       const response = await combosAPI.getAll();
@@ -150,25 +132,68 @@ const Combos = () => {
       console.error('Failed to fetch combos:', error);
       showError('Failed to load combos');
     }
-  };
+  }, []);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       const response = await productsAPI.getAll();
       setProducts(response.data || []);
     } catch (error) {
       console.error('Failed to fetch products:', error);
     }
-  };
+  }, []);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       const response = await categoriesAPI.getAll();
       setCategories(response.data || []);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
     }
-  };
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      await Promise.all([
+        fetchCombos(),
+        fetchProducts(),
+        fetchCategories()
+      ]);
+    } catch (error) {
+      showError('Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchCombos, fetchProducts, fetchCategories]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const handleCombosChange = () => {
+      fetchCombos();
+    };
+    const handleProductsChange = () => {
+      fetchProducts();
+    };
+    const handleCategoriesChange = () => {
+      fetchCategories();
+    };
+
+    socket.on('combos:changed', handleCombosChange);
+    socket.on('products:changed', handleProductsChange);
+    socket.on('inventory:changed', handleProductsChange);
+    socket.on('categories:changed', handleCategoriesChange);
+
+    return () => {
+      socket.off('combos:changed', handleCombosChange);
+      socket.off('products:changed', handleProductsChange);
+      socket.off('inventory:changed', handleProductsChange);
+      socket.off('categories:changed', handleCategoriesChange);
+    };
+  }, [fetchCombos, fetchProducts, fetchCategories]);
 
 
 

@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { rtoProductsAPI, returnsAPI } from '../services/api';
+import { socket } from '../services/socket';
 import {
   Box,
   Typography,
@@ -45,12 +46,7 @@ const RTOProducts = () => {
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('RTO');
 
-  useEffect(() => {
-    fetchProducts();
-    fetchInventory();
-  }, [activeTab]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -85,9 +81,9 @@ const RTOProducts = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab]);
 
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     setInventoryLoading(true);
     try {
       const resp = await rtoProductsAPI.getAll({ category: activeTab });
@@ -126,7 +122,29 @@ const RTOProducts = () => {
     } finally {
       setInventoryLoading(false);
     }
-  };
+  }, [activeTab]);
+
+  useEffect(() => {
+    fetchProducts();
+    fetchInventory();
+  }, [fetchProducts, fetchInventory, activeTab]);
+
+  useEffect(() => {
+    const handleRtoChange = () => {
+      fetchProducts();
+      fetchInventory();
+    };
+
+    socket.on('returns:changed', handleRtoChange);
+    socket.on('rto-products:changed', handleRtoChange);
+    socket.on('inventory:changed', handleRtoChange);
+
+    return () => {
+      socket.off('returns:changed', handleRtoChange);
+      socket.off('rto-products:changed', handleRtoChange);
+      socket.off('inventory:changed', handleRtoChange);
+    };
+  }, [fetchProducts, fetchInventory]);
 
   return (
     <Box sx={{ p: 3, backgroundColor: THEME.offWhite, minHeight: '100vh' }}>

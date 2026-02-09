@@ -1,4 +1,5 @@
 const Vendor = require('../models/Vendor');
+const { emitEvent } = require('../utils/socket');
 
 // Get all vendors
 exports.getAllVendors = async (req, res) => {
@@ -28,6 +29,7 @@ exports.createVendor = async (req, res) => {
   try {
     const vendor = new Vendor(req.body);
     const savedVendor = await vendor.save();
+    emitEvent('vendors:changed', { action: 'created', id: savedVendor._id });
     res.status(201).json(savedVendor);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -45,6 +47,7 @@ exports.updateVendor = async (req, res) => {
     if (!vendor) {
       return res.status(404).json({ message: 'Vendor not found' });
     }
+    emitEvent('vendors:changed', { action: 'updated', id: vendor._id });
     res.json(vendor);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -62,6 +65,7 @@ exports.deleteVendor = async (req, res) => {
     if (!vendor) {
       return res.status(404).json({ message: 'Vendor not found' });
     }
+    emitEvent('vendors:changed', { action: 'deleted', id: vendor._id });
     res.json({ message: 'Vendor deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

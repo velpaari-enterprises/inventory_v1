@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -24,6 +24,7 @@ import {
   CardContent
 } from '@mui/material';
 import { uploadedProfitSheetsAPI } from '../services/api';
+import { socket } from '../services/socket';
 import { FaEye, FaTrash, FaSearch, FaSync, FaDownload } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
 
@@ -63,7 +64,7 @@ const UploadedDataManagement = () => {
   const [globalDeduction, setGlobalDeduction] = useState({ reason: '', amount: '' });
   const [globalDeductionsList, setGlobalDeductionsList] = useState([]);
 
-  const fetchGlobalDeductions = async () => {
+  const fetchGlobalDeductions = useCallback(async () => {
     try {
       const response = await fetch('http://localhost:5000/api/global-deductions');
       if (response.ok) {
@@ -73,7 +74,7 @@ const UploadedDataManagement = () => {
     } catch (error) {
       console.error('Failed to fetch global deductions:', error);
     }
-  };
+  }, []);
 
   const handleAddGlobalDeduction = async (e) => {
     e.preventDefault();
@@ -110,13 +111,6 @@ const UploadedDataManagement = () => {
     }
   };
 
-  // Fetch uploads
-  useEffect(() => {
-    fetchUploads();
-    fetchSummary();
-    fetchGlobalDeductions();
-  }, []);
-
   // Apply filters
   useEffect(() => {
     let filtered = uploads;
@@ -139,7 +133,7 @@ const UploadedDataManagement = () => {
     setFilteredUploads(filtered);
   }, [uploads, searchTerm, startDate, endDate]);
 
-  const fetchUploads = async () => {
+  const fetchUploads = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
@@ -150,9 +144,9 @@ const UploadedDataManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     try {
       const response = await uploadedProfitSheetsAPI.getSummary();
       console.log('Summary response:', response.data); // Debug log
@@ -160,7 +154,34 @@ const UploadedDataManagement = () => {
     } catch (err) {
       console.error('Failed to fetch summary:', err);
     }
-  };
+  }, []);
+
+  // Fetch uploads
+  useEffect(() => {
+    fetchUploads();
+    fetchSummary();
+    fetchGlobalDeductions();
+  }, [fetchUploads, fetchSummary, fetchGlobalDeductions]);
+
+  useEffect(() => {
+    const handleUploadsChange = () => {
+      fetchUploads();
+      fetchSummary();
+    };
+
+    const handleDeductionsChange = () => {
+      fetchGlobalDeductions();
+      fetchSummary();
+    };
+
+    socket.on('uploaded-profit-sheets:changed', handleUploadsChange);
+    socket.on('global-deductions:changed', handleDeductionsChange);
+
+    return () => {
+      socket.off('uploaded-profit-sheets:changed', handleUploadsChange);
+      socket.off('global-deductions:changed', handleDeductionsChange);
+    };
+  }, [fetchUploads, fetchSummary, fetchGlobalDeductions]);
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this upload record? This action cannot be undone.')) {

@@ -1,4 +1,5 @@
 const Category = require('../models/Category');
+const { emitEvent } = require('../utils/socket');
 
 // Get all categories
 exports.getAllCategories = async (req, res) => {
@@ -55,6 +56,7 @@ exports.createCategory = async (req, res) => {
     });
 
     const savedCategory = await category.save();
+    emitEvent('categories:changed', { action: 'created', id: savedCategory._id });
     res.status(201).json(savedCategory);
   } catch (error) {
     if (error.code === 11000) {
@@ -113,6 +115,7 @@ exports.updateCategory = async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
+    emitEvent('categories:changed', { action: 'updated', id: category._id });
     res.json(category);
   } catch (error) {
     if (error.code === 11000) {
@@ -149,6 +152,7 @@ exports.deleteCategory = async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
+    emitEvent('categories:changed', { action: 'deleted', id: req.params.id });
     res.json({ message: 'Category deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

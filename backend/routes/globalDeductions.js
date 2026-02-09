@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const GlobalDeduction = require('../models/GlobalDeduction');
+const { emitEvent } = require('../utils/socket');
 
 // GET all deductions
 router.get('/', async (req, res) => {
@@ -21,6 +22,7 @@ router.post('/', async (req, res) => {
             amount: Number(amount)
         });
         const newDeduction = await deduction.save();
+        emitEvent('global-deductions:changed', { action: 'created', id: newDeduction._id });
         res.status(201).json(newDeduction);
     } catch (error) {
         res.status(400).json({ message: error.message });
@@ -31,6 +33,7 @@ router.post('/', async (req, res) => {
 router.delete('/:id', async (req, res) => {
     try {
         await GlobalDeduction.findByIdAndDelete(req.params.id);
+        emitEvent('global-deductions:changed', { action: 'deleted', id: req.params.id });
         res.json({ message: 'Deduction deleted' });
     } catch (error) {
         res.status(500).json({ message: error.message });

@@ -1000,11 +1000,13 @@ const Sales = () => {
     socket.on('sales:changed', handleSalesChange);
     socket.on('inventory:changed', handleSalesChange);
     socket.on('products:changed', handleSalesChange);
+    socket.on('buyers:changed', handleSalesChange);
 
     return () => {
       socket.off('sales:changed', handleSalesChange);
       socket.off('inventory:changed', handleSalesChange);
       socket.off('products:changed', handleSalesChange);
+      socket.off('buyers:changed', handleSalesChange);
     };
   }, [fetchData]);
 

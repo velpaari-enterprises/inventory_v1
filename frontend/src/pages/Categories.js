@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -30,6 +30,7 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 import { categoriesAPI } from '../services/api';
+import { socket } from '../services/socket';
 
 const Categories = () => {
   const [categories, setCategories] = useState([]);
@@ -46,10 +47,23 @@ const Categories = () => {
     description: ''
   });
 
+  const loadCategories = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await categoriesAPI.getAll();
+      setCategories(response.data);
+    } catch (error) {
+      setError('Failed to load categories');
+      setTimeout(() => setError(''), 5000);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   // Load categories on component mount
   useEffect(() => {
     loadCategories();
-  }, []);
+  }, [loadCategories]);
 
   // Filter categories based on search term
   useEffect(() => {
@@ -61,18 +75,17 @@ const Categories = () => {
     setFilteredCategories(filtered);
   }, [categories, searchTerm]);
 
-  const loadCategories = async () => {
-    try {
-      setLoading(true);
-      const response = await categoriesAPI.getAll();
-      setCategories(response.data);
-    } catch (error) {
-      setError('Failed to load categories');
-      setTimeout(() => setError(''), 5000);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    const handleCategoriesChange = () => {
+      loadCategories();
+    };
+
+    socket.on('categories:changed', handleCategoriesChange);
+
+    return () => {
+      socket.off('categories:changed', handleCategoriesChange);
+    };
+  }, [loadCategories]);
 
   const handleInputChange = (name, value) => {
     setFormData(prev => ({

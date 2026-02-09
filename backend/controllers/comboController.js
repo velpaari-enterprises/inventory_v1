@@ -3,6 +3,7 @@ const Product = require('../models/Product');
 const cloudinary = require('../config/cloudinary');
 const multer = require('multer');
 const mongoose = require('mongoose');
+const { emitEvent } = require('../utils/socket');
 
 const storage = multer.memoryStorage();
 
@@ -162,6 +163,7 @@ exports.createCombo = async (req, res) => {
     });
 
     const savedCombo = await combo.save();
+    emitEvent('combos:changed', { action: 'created', id: savedCombo._id });
     res.status(201).json(savedCombo);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -204,6 +206,7 @@ exports.updateCombo = async (req, res) => {
     delete updateData.deleteImage;
 
     const combo = await Combo.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true });
+    emitEvent('combos:changed', { action: 'updated', id: combo?._id || req.params.id });
     res.json(combo);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -239,6 +242,7 @@ exports.deleteCombo = async (req, res) => {
     await combo.save();
     
     console.log('Combo deleted successfully:', combo.name);
+    emitEvent('combos:changed', { action: 'deleted', id: combo._id });
     res.json({ 
       message: 'Combo deleted successfully',
       success: true,
@@ -319,6 +323,7 @@ exports.addProductToCombo = async (req, res) => {
     const updatedCombo = await Combo.findById(comboId)
       .populate('products.product', 'name price barcode');
     
+    emitEvent('combos:changed', { action: 'updated', id: updatedCombo._id });
     res.json(updatedCombo);
   } catch (error) {
     res.status(500).json({ message: error.message });

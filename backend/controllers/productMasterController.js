@@ -2,6 +2,7 @@ const Category = require('../models/Category');
 const Combo = require('../models/Combo');
 const Product = require('../models/Product');
 const xlsx = require('xlsx');
+const { emitEvent } = require('../utils/socket');
 
 // Upload and process Excel file
 exports.uploadExcel = async (req, res) => {
@@ -124,6 +125,13 @@ exports.uploadExcel = async (req, res) => {
         // Skip error rows, don't add to errors array
         continue;
       }
+    }
+
+    if (categoriesCreated.length > 0) {
+      emitEvent('categories:changed', { action: 'bulk-created' });
+    }
+    if (combosCreated.length > 0 || combosUpdated.length > 0) {
+      emitEvent('combos:changed', { action: 'bulk-updated' });
     }
 
     res.status(200).json({

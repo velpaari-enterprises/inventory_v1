@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -31,6 +31,7 @@ import {
   People as PeopleIcon,
 } from '@mui/icons-material';
 import { buyersAPI } from '../services/api';
+import { socket } from '../services/socket';
 
 const Buyers = () => {
   const [buyers, setBuyers] = useState([]);
@@ -47,11 +48,7 @@ const Buyers = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchBuyers();
-  }, []);
-
-  const fetchBuyers = async () => {
+  const fetchBuyers = useCallback(async () => {
     try {
       setLoading(true);
       const response = await buyersAPI.getAll();
@@ -62,7 +59,23 @@ const Buyers = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchBuyers();
+  }, [fetchBuyers]);
+
+  useEffect(() => {
+    const handleBuyersChange = () => {
+      fetchBuyers();
+    };
+
+    socket.on('buyers:changed', handleBuyersChange);
+
+    return () => {
+      socket.off('buyers:changed', handleBuyersChange);
+    };
+  }, [fetchBuyers]);
 
   const handleShowModal = (buyer = null) => {
     if (buyer) {

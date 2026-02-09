@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const UploadedProfitSheet = require('../models/UploadedProfitSheet');
+const { emitEvent } = require('../utils/socket');
 
 // GET summary statistics (MUST come before /:id to avoid matching as ID)
 router.get('/stats/summary', async (req, res) => {
@@ -157,6 +158,7 @@ router.post('/', async (req, res) => {
 
     await sheet.save();
 
+    emitEvent('uploaded-profit-sheets:changed', { action: 'created', id: sheet._id });
     res.status(201).json(sheet);
     console.log('📥 Created UploadedProfitSheet:', { id: sheet._id, fileName: sheet.fileName, totalRecords: sheet.totalRecords, uploadedDataLength: sheet.uploadedData.length });
     if (sheet.uploadedData.length > 0) console.log('📥 First uploaded row in created sheet:', sheet.uploadedData[0]);
@@ -181,6 +183,7 @@ router.put('/:id', async (req, res) => {
 
     await sheet.save();
 
+    emitEvent('uploaded-profit-sheets:changed', { action: 'updated', id: sheet._id });
     res.json(sheet);
   } catch (error) {
     console.error('Error updating sheet:', error);
@@ -216,6 +219,7 @@ router.put('/:sheetId/rows/:rowId', async (req, res) => {
 
     await sheet.save();
 
+    emitEvent('uploaded-profit-sheets:changed', { action: 'row-updated', id: sheet._id, rowId });
     res.json(sheet);
   } catch (error) {
     console.error('Error updating row:', error);
@@ -245,6 +249,7 @@ router.delete('/:sheetId/rows/:rowId', async (req, res) => {
     sheet.errorRecords = sheet.totalRecords - sheet.successRecords;
 
     await sheet.save();
+    emitEvent('uploaded-profit-sheets:changed', { action: 'row-deleted', id: sheet._id, rowId });
     res.json(sheet);
   } catch (error) {
     console.error('Error deleting row:', error);
@@ -290,6 +295,7 @@ router.post('/:sheetId/rows', async (req, res) => {
 
     await sheet.save();
 
+    emitEvent('uploaded-profit-sheets:changed', { action: 'row-added', id: sheet._id });
     res.status(201).json(sheet);
   } catch (error) {
     console.error('Error adding row:', error);
@@ -308,6 +314,7 @@ router.post('/:id/deductions', async (req, res) => {
     updateSheetTotals(sheet);
     await sheet.save();
 
+    emitEvent('uploaded-profit-sheets:changed', { action: 'deduction-added', id: sheet._id });
     res.json(sheet);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -324,6 +331,7 @@ router.delete('/:id/deductions/:deductionId', async (req, res) => {
     updateSheetTotals(sheet);
     await sheet.save();
 
+    emitEvent('uploaded-profit-sheets:changed', { action: 'deduction-deleted', id: sheet._id });
     res.json(sheet);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -462,6 +470,7 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Uploaded profit sheet not found' });
     }
 
+    emitEvent('uploaded-profit-sheets:changed', { action: 'deleted', id: req.params.id });
     res.json({ message: 'Uploaded profit sheet deleted successfully' });
   } catch (error) {
     console.error('Error deleting sheet:', error);

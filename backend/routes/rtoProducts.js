@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const RTOProduct = require('../models/RTOProduct');
 const Product = require('../models/Product');
+const { emitEvent } = require('../utils/socket');
 
 // GET summary statistics (MUST come before /:id to avoid matching as ID)
 router.get('/stats/summary', async (req, res) => {
@@ -136,6 +137,8 @@ router.post('/', async (req, res) => {
       $inc: { quantity: quantity } 
     });
 
+    emitEvent('rto-products:changed', { action: 'created', id: rtoProduct._id });
+    emitEvent('inventory:changed', { action: 'rto-created', id: rtoProduct._id });
     res.status(201).json(rtoProduct);
   } catch (error) {
     console.error('Error creating RTO product:', error);
@@ -170,6 +173,8 @@ router.put('/:id', async (req, res) => {
 
     await rtoProduct.save();
 
+    emitEvent('rto-products:changed', { action: 'updated', id: rtoProduct._id });
+    emitEvent('inventory:changed', { action: 'rto-updated', id: rtoProduct._id });
     res.json(rtoProduct);
   } catch (error) {
     console.error('Error updating RTO product:', error);
@@ -194,6 +199,8 @@ router.delete('/:id', async (req, res) => {
     // Delete RTO product
     await RTOProduct.findByIdAndDelete(req.params.id);
 
+    emitEvent('rto-products:changed', { action: 'deleted', id: req.params.id });
+    emitEvent('inventory:changed', { action: 'rto-deleted', id: req.params.id });
     res.json({ message: 'RTO product deleted successfully' });
   } catch (error) {
     console.error('Error deleting RTO product:', error);

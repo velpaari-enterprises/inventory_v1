@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Container,
   Row,
@@ -13,6 +13,7 @@ import {
 import styled from 'styled-components';
 import CommonTable from '../components/CommonTable';
 import { productsAPI, returnsAPI } from '../services/api';
+import { socket } from '../services/socket';
 
 const StyledContainer = styled(Container)`
   padding: 2rem;
@@ -42,23 +43,9 @@ const Returns = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('returns');
   const [error, setError] = useState('');
-  const [refreshInterval, setRefreshInterval] = useState(null);
   const [returnFilter, setReturnFilter] = useState('all'); // 'all', 'RTO', 'RPU'
 
-  useEffect(() => {
-    fetchData();
-    
-    // Set up auto-refresh every 30 seconds
-    const interval = setInterval(fetchData, 30000);
-    setRefreshInterval(interval);
-    
-    // Cleanup interval on unmount
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, []);
-
-  const fetchData = async (showLoading = true) => {
+  const fetchData = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
       setError('');
@@ -90,7 +77,23 @@ const Returns = () => {
     } finally {
       if (showLoading) setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    const handleReturnsChange = () => {
+      fetchData(false);
+    };
+
+    socket.on('returns:changed', handleReturnsChange);
+
+    return () => {
+      socket.off('returns:changed', handleReturnsChange);
+    };
+  }, [fetchData]);
   
   const handleRefresh = () => {
     fetchData(false);

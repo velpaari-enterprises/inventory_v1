@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -31,6 +31,7 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { reportsAPI, uploadedProfitSheetsAPI } from '../services/api';
+import { socket } from '../services/socket';
 
 // Theme Colors - Premium Gold & Black
 const THEME = {
@@ -75,10 +76,6 @@ const Reports = () => {
   // UI States
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
 
   // Re-run status processing if upload results change
   useEffect(() => {
@@ -127,7 +124,7 @@ const Reports = () => {
     }
   }, [selectedSheetId, uploadedSheets]);
 
-  const fetchInitialData = async () => {
+  const fetchInitialData = useCallback(async () => {
     try {
       setLoading(true);
       const [productsRes, sheetsRes] = await Promise.all([
@@ -142,7 +139,29 @@ const Reports = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchInitialData();
+  }, [fetchInitialData]);
+
+  useEffect(() => {
+    const handleUploadsChange = () => {
+      fetchInitialData();
+    };
+
+    const handleProductsChange = () => {
+      fetchInitialData();
+    };
+
+    socket.on('uploaded-profit-sheets:changed', handleUploadsChange);
+    socket.on('products:changed', handleProductsChange);
+
+    return () => {
+      socket.off('uploaded-profit-sheets:changed', handleUploadsChange);
+      socket.off('products:changed', handleProductsChange);
+    };
+  }, [fetchInitialData]);
 
   const fetchComboDetailsForRows = async (rows) => {
     if (!rows || rows.length === 0) return;

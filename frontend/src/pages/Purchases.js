@@ -41,10 +41,12 @@ export default function Purchases() {
 
     socket.on('products:changed', handleDataChange);
     socket.on('inventory:changed', handleDataChange);
+    socket.on('vendors:changed', handleDataChange);
 
     return () => {
       socket.off('products:changed', handleDataChange);
       socket.off('inventory:changed', handleDataChange);
+      socket.off('vendors:changed', handleDataChange);
     };
   }, [fetchData]);
 

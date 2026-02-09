@@ -224,14 +224,26 @@ const Products = () => {
       fetchProducts();
     };
 
+    const handleCategoriesChange = () => {
+      fetchCategories();
+    };
+
+    const handleVendorsChange = () => {
+      fetchVendors();
+    };
+
     socket.on('products:changed', handleProductsChange);
     socket.on('inventory:changed', handleProductsChange);
+    socket.on('categories:changed', handleCategoriesChange);
+    socket.on('vendors:changed', handleVendorsChange);
 
     return () => {
       socket.off('products:changed', handleProductsChange);
       socket.off('inventory:changed', handleProductsChange);
+      socket.off('categories:changed', handleCategoriesChange);
+      socket.off('vendors:changed', handleVendorsChange);
     };
-  }, [fetchProducts]);
+  }, [fetchProducts, fetchCategories, fetchVendors]);
 
   const handleShowModal = (product = null) => {
     if (product) {

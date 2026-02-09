@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -28,6 +28,7 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { vendorsAPI } from '../services/api';
+import { socket } from '../services/socket';
 
 const Vendors = () => {
   const [vendors, setVendors] = useState([]);
@@ -47,18 +48,30 @@ const Vendors = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  useEffect(() => { 
-    fetchVendors(); 
-  }, []);
-
-  const fetchVendors = async () => {
+  const fetchVendors = useCallback(async () => {
     try {
       const response = await vendorsAPI.getAll();
       setVendors(response.data);
     } catch {
       setError('Failed to fetch vendors.');
     }
-  };
+  }, []);
+
+  useEffect(() => { 
+    fetchVendors(); 
+  }, [fetchVendors]);
+
+  useEffect(() => {
+    const handleVendorsChange = () => {
+      fetchVendors();
+    };
+
+    socket.on('vendors:changed', handleVendorsChange);
+
+    return () => {
+      socket.off('vendors:changed', handleVendorsChange);
+    };
+  }, [fetchVendors]);
 
   const handleShowModal = (vendor = null) => {
     setEditingVendor(vendor);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Paper,
@@ -26,6 +26,7 @@ import {
   IconButton
 } from '@mui/material';
 import { profitLossAPI, uploadedProfitSheetsAPI, salesAPI } from '../services/api';
+import { socket } from '../services/socket';
 import { FaUpload, FaDownload, FaChartLine, FaCheck, FaTimes, FaFileExcel, FaFilePdf } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
 import {
@@ -166,7 +167,7 @@ const ProfitLoss = () => {
     setFilter(prev => ({ ...prev, [name]: value }));
   };
 
-  const fetchProfitLoss = async () => {
+  const fetchProfitLoss = useCallback(async () => {
     // Validation
     if (!filter.startDate || !filter.endDate) {
       setError('Please select both Start Date and End Date');
@@ -193,9 +194,9 @@ const ProfitLoss = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter.startDate, filter.endDate]);
 
-  const fetchUploadedData = async (startDate, endDate) => {
+  const fetchUploadedData = useCallback(async (startDate, endDate) => {
     try {
       const response = await profitLossAPI.getUploadedData();
       const sheets = response.data.results || [];
@@ -220,7 +221,27 @@ const ProfitLoss = () => {
     } catch (err) {
       console.error('Failed to fetch uploaded data:', err);
     }
-  };
+  }, [selectedSheetId, showAllUploads]);
+
+  useEffect(() => {
+    const handleUploadsChange = () => {
+      fetchUploadedData(filter.startDate, filter.endDate);
+    };
+
+    const handleSalesChange = () => {
+      if (filter.startDate && filter.endDate) {
+        fetchProfitLoss();
+      }
+    };
+
+    socket.on('uploaded-profit-sheets:changed', handleUploadsChange);
+    socket.on('sales:changed', handleSalesChange);
+
+    return () => {
+      socket.off('uploaded-profit-sheets:changed', handleUploadsChange);
+      socket.off('sales:changed', handleSalesChange);
+    };
+  }, [fetchUploadedData, fetchProfitLoss, filter.startDate, filter.endDate]);
 
   const filterRowsByDate = (rows, startDate, endDate) => {
     if (!startDate && !endDate) return rows;
