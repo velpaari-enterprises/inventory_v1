@@ -772,7 +772,6 @@ const Combos = () => {
         <Grid container alignItems="center" spacing={2}>
           <Grid item xs>
             <Typography variant="h4" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', mb: 1 }}>
-              <span style={{ fontSize: '2rem', marginRight: '1rem' }}>📦</span>
               Combo Management
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -951,7 +950,7 @@ const Combos = () => {
                           cursor: 'pointer'
                         }}
                       >
-                        📦
+                        
                       </Box>
                     )}
                   </TableCell>
@@ -1272,7 +1271,7 @@ const Combos = () => {
           {formData.products.length > 0 && (
             <Box sx={{ mt: 3 }}>
               <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                📦 Selected Products ({formData.products.length})
+                  Selected Products ({formData.products.length})
               </Typography>
               
               <TableContainer component={Paper} sx={{ border: '1px solid #e0e0e0', boxShadow: 'none' }}>
@@ -1404,7 +1403,7 @@ const Combos = () => {
         fullWidth
       >
         <DialogTitle sx={{ bgcolor: '#000', color: '#fff' }}>
-          📦 Combo Details
+            Combo Details
           <IconButton
             onClick={() => setShowViewModal(false)}
             sx={{ position: 'absolute', right: 8, top: 8, color: '#fff' }}
@@ -1439,7 +1438,7 @@ const Combos = () => {
                         justifyContent: 'center'
                       }}
                     >
-                      <Typography sx={{ fontSize: '4rem' }}>📦</Typography>
+                      <Typography sx={{ fontSize: '4rem' }}> </Typography>
                     </Box>
                   )}
                 </Grid>
@@ -1890,7 +1889,7 @@ const Combos = () => {
             </Box>
           ) : (
             <Box sx={{ textAlign: 'center', py: 8 }}>
-              <Typography variant="h4" sx={{ color: '#fff', mb: 2 }}>📦</Typography>
+              <Typography variant="h4" sx={{ color: '#fff', mb: 2 }}> </Typography>
               <Typography variant="h6" sx={{ color: '#fff', mb: 1 }}>
                 No Image Available
               </Typography>
