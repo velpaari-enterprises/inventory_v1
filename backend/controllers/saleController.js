@@ -170,6 +170,8 @@ exports.updateSale = async (req, res) => {
           select: 'name barcode price'
         }
       });
+    emitEvent('sales:changed', { action: 'updated', id: populatedSale._id });
+    emitEvent('inventory:changed', { action: 'sale-updated', id: populatedSale._id });
     res.json(populatedSale);
   } catch (error) {
     console.log(error.message);
@@ -229,6 +231,8 @@ exports.deleteSale = async (req, res) => {
     }
 
     await Sale.findByIdAndDelete(saleId);
+    emitEvent('sales:changed', { action: 'deleted', id: saleId });
+    emitEvent('inventory:changed', { action: 'sale-deleted', id: saleId });
     res.json({ message: 'Sale deleted and product quantities restored' });
   } catch (error) {
     console.log(error.message);
@@ -238,6 +242,7 @@ exports.deleteSale = async (req, res) => {
 const Sale = require('../models/Sale');
 const Product = require('../models/Product');
 const Combo = require('../models/Combo');
+const { emitEvent } = require('../utils/socket');
 
 // Get all sales
 exports.getAllSales = async (req, res) => {
@@ -474,6 +479,8 @@ exports.createSale = async (req, res) => {
         }
       });
 
+    emitEvent('sales:changed', { action: 'created', id: populatedSale._id });
+    emitEvent('inventory:changed', { action: 'sale-created', id: populatedSale._id });
     res.status(201).json(populatedSale);
   } catch (error) {
     console.log(error.message)

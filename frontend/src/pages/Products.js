@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Box,
   Button,
@@ -42,6 +42,7 @@ import {
   Inventory as InventoryIcon
 } from '@mui/icons-material';
 import { productsAPI, vendorsAPI, returnsAPI, categoriesAPI, barcodesAPI, combosAPI } from '../services/api';
+import { socket } from '../services/socket';
 import Quagga from 'quagga';
 
 // Theme Colors - Premium Gold & Black
@@ -164,12 +165,6 @@ const Products = () => {
     setPreviewImageName('');
   };
 
-  useEffect(() => {
-    fetchProducts();
-    fetchVendors();
-    fetchCategories();
-  }, []);
-  
   // Cleanup scanner on component unmount
   useEffect(() => {
     return () => {
@@ -187,7 +182,7 @@ const Products = () => {
     }
   }, [selectAll, products]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       const response = await productsAPI.getAll();
@@ -198,25 +193,45 @@ const Products = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchVendors = async () => {
+  const fetchVendors = useCallback(async () => {
     try {
       const response = await vendorsAPI.getAll();
       setVendors(response.data);
     } catch (error) {
       console.error('Failed to fetch vendors:', error);
     }
-  };
+  }, []);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       const response = await categoriesAPI.getAll();
       setCategories(response.data);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+    fetchVendors();
+    fetchCategories();
+  }, [fetchProducts, fetchVendors, fetchCategories]);
+
+  useEffect(() => {
+    const handleProductsChange = () => {
+      fetchProducts();
+    };
+
+    socket.on('products:changed', handleProductsChange);
+    socket.on('inventory:changed', handleProductsChange);
+
+    return () => {
+      socket.off('products:changed', handleProductsChange);
+      socket.off('inventory:changed', handleProductsChange);
+    };
+  }, [fetchProducts]);
 
   const handleShowModal = (product = null) => {
     if (product) {

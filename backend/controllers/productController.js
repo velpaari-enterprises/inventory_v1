@@ -1,6 +1,7 @@
 const Product = require('../models/Product');
 const ProductItem = require('../models/ProductItem');
 const cloudinary = require('../config/cloudinary');
+const { emitEvent } = require('../utils/socket');
 
 const multer = require('multer');
 const path = require('path');
@@ -107,6 +108,8 @@ exports.createProduct = async (req, res) => {
     const product = new Product({ ...req.body, barcode, image: imageUrl });
     const savedProduct = await product.save();
 
+    emitEvent('products:changed', { action: 'created', id: savedProduct._id });
+    emitEvent('inventory:changed', { action: 'created', id: savedProduct._id });
     res.status(201).json(savedProduct);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -184,6 +187,8 @@ exports.updateProduct = async (req, res) => {
       { new: true, runValidators: true }
     );
     
+    emitEvent('products:changed', { action: 'updated', id: product._id });
+    emitEvent('inventory:changed', { action: 'updated', id: product._id });
     res.json(product);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -219,6 +224,8 @@ exports.deleteProduct = async (req, res) => {
     // Also delete all product items
     await ProductItem.deleteMany({ product: req.params.id });
     
+    emitEvent('products:changed', { action: 'deleted', id: product._id });
+    emitEvent('inventory:changed', { action: 'deleted', id: product._id });
     res.json({ message: 'Product deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

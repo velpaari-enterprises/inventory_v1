@@ -2,7 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const dotenv = require('dotenv');
+const http = require('http');
 const connectDB = require('./config/db');
+const { initSocket } = require('./socket');
 
 // Load env vars
 dotenv.config();
@@ -11,10 +13,18 @@ dotenv.config();
 connectDB();
 
 const app = express();
+const server = http.createServer(app);
 
 // Middleware
+const allowedOrigins = [
+  "https://inventory-management-tau-lac.vercel.app",
+  "https://textile-ayjb.vercel.app",
+  "http://localhost:3000",
+  "http://localhost:5173"
+];
+
 app.use(cors({
-  origin: ["https://inventory-management-tau-lac.vercel.app", "https://textile-ayjb.vercel.app", "http://localhost:3000", "http://localhost:5173"],
+  origin: allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE"],
   credentials: true
 }));
@@ -103,8 +113,10 @@ app.use((error, req, res, next) => {
   res.status(500).json({ message: 'Server error' });
 });
 
+initSocket(server);
+
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

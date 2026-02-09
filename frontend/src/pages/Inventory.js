@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -27,6 +27,7 @@ import {
   Close as CloseIcon,
 } from '@mui/icons-material';
 import { productsAPI } from '../services/api';
+import { socket } from '../services/socket';
 
 const Inventory = () => {
   const [products, setProducts] = useState([]);
@@ -53,12 +54,7 @@ const Inventory = () => {
     status: true
   });
 
-  useEffect(() => {
-    fetchInventory();
-    fetchLowStock();
-  }, []);
-
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     try {
       setLoading(true);
       const response = await productsAPI.getAll();
@@ -69,16 +65,36 @@ const Inventory = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const fetchLowStock = async () => {
+  const fetchLowStock = useCallback(async () => {
     try {
       const response = await productsAPI.getLowStock();
       setLowStock(response.data);
     } catch (error) {
       console.error('Failed to fetch low stock');
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchInventory();
+    fetchLowStock();
+  }, [fetchInventory, fetchLowStock]);
+
+  useEffect(() => {
+    const handleInventoryChange = () => {
+      fetchInventory();
+      fetchLowStock();
+    };
+
+    socket.on('inventory:changed', handleInventoryChange);
+    socket.on('products:changed', handleInventoryChange);
+
+    return () => {
+      socket.off('inventory:changed', handleInventoryChange);
+      socket.off('products:changed', handleInventoryChange);
+    };
+  }, [fetchInventory, fetchLowStock]);
 
   const clearError = () => {
     setError('');

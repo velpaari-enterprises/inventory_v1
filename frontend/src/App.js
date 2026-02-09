@@ -6,6 +6,7 @@ import './App.css';
 
 import Header from './components/Layout/Header';
 import Sidebar from './components/Layout/Sidebar';
+import KeepAliveRoutes from './components/KeepAliveRoutes';
 import Dashboard from './pages/Dashboard';
 import Vendors from './pages/Vendors';
 import Buyers from './pages/Buyers';
@@ -81,6 +82,45 @@ const AppContent = () => {
     );
   }
 
+  const routes = [
+    { path: '/', element: <Dashboard /> },
+    { path: '/vendors', element: <Vendors /> },
+    { path: '/buyers', element: <Buyers /> },
+    { path: '/categories', element: <Categories /> },
+    { path: '/products', element: <Products /> },
+    { path: '/combos', element: <Combos /> },
+    { path: '/purchases', element: <Purchases /> },
+    { path: '/sales', element: <Sales /> },
+    { path: '/inventory', element: <Inventory /> },
+    { path: '/reports', element: <Reports /> },
+    { path: '/rto-products', element: <RTOProducts /> },
+    {
+      path: '/profit-loss',
+      element: (
+        <ProtectedRoute roles={['owner']}>
+          <ProfitLoss />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: '/uploaded-data',
+      element: (
+        <ProtectedRoute roles={['owner']}>
+          <UploadedDataManagement />
+        </ProtectedRoute>
+      )
+    },
+    {
+      path: '/settings',
+      element: (
+        <ProtectedRoute roles={['owner']}>
+          <Settings />
+        </ProtectedRoute>
+      )
+    },
+    { path: '*', element: <Navigate to="/" replace /> }
+  ];
+
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', margin: 0, padding: 0 }}>
       <Sidebar />
@@ -98,48 +138,7 @@ const AppContent = () => {
         }}
       >
         <Header />
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/vendors" element={<Vendors />} />
-          <Route path="/buyers" element={<Buyers />} />
-          <Route path="/categories" element={<Categories />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/combos" element={<Combos />} />
-          <Route path="/purchases" element={<Purchases />} />
-          <Route path="/sales" element={<Sales />} />
-          <Route path="/inventory" element={<Inventory />} />
-          <Route path="/reports" element={<Reports />} />
-          <Route path="/rto-products" element={<RTOProducts />} />
-
-          {/* Protected Routes for Owner only */}
-          <Route
-            path="/profit-loss"
-            element={
-              <ProtectedRoute roles={['owner']}>
-                <ProfitLoss />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/uploaded-data"
-            element={
-              <ProtectedRoute roles={['owner']}>
-                <UploadedDataManagement />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute roles={['owner']}>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Catch all redirect to dashboard */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <KeepAliveRoutes routes={routes} />
       </Box>
     </Box>
   );

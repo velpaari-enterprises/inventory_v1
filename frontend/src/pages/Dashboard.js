@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import styled, { keyframes, css } from 'styled-components';
 import { productsAPI, purchasesAPI, salesAPI } from '../services/api';
+import { socket } from '../services/socket';
 
 // Theme Colors - Premium Gold & Black
 const THEME = {
@@ -339,40 +340,54 @@ const Dashboard = () => {
   const [recentSales, setRecentSales] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [
-          productsRes,
-          lowStockRes,
-          purchasesRes,
-          salesRes
-        ] = await Promise.all([
-          productsAPI.getAll(),
-          productsAPI.getLowStock(),
-          purchasesAPI.getAll(),
-          salesAPI.getAll()
-        ]);
+  const fetchData = useCallback(async () => {
+    try {
+      const [
+        productsRes,
+        lowStockRes,
+        purchasesRes,
+        salesRes
+      ] = await Promise.all([
+        productsAPI.getAll(),
+        productsAPI.getLowStock(),
+        purchasesAPI.getAll(),
+        salesAPI.getAll()
+      ]);
 
-        setStats({
-          totalProducts: productsRes.data.length,
-          totalPurchases: purchasesRes.data.length,
-          totalSales: salesRes.data.length,
-          lowStockCount: lowStockRes.data.length
-        });
+      setStats({
+        totalProducts: productsRes.data.length,
+        totalPurchases: purchasesRes.data.length,
+        totalSales: salesRes.data.length,
+        lowStockCount: lowStockRes.data.length
+      });
 
-        setLowStockProducts(lowStockRes.data.slice(0, 5));
-        setRecentPurchases(purchasesRes.data.slice(0, 5));
-        setRecentSales(salesRes.data.slice(0, 5));
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
+      setLowStockProducts(lowStockRes.data.slice(0, 5));
+      setRecentPurchases(purchasesRes.data.slice(0, 5));
+      setRecentSales(salesRes.data.slice(0, 5));
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    socket.on('products:changed', fetchData);
+    socket.on('inventory:changed', fetchData);
+    socket.on('purchases:changed', fetchData);
+    socket.on('sales:changed', fetchData);
+
+    return () => {
+      socket.off('products:changed', fetchData);
+      socket.off('inventory:changed', fetchData);
+      socket.off('purchases:changed', fetchData);
+      socket.off('sales:changed', fetchData);
+    };
+  }, [fetchData]);
 
   const getStockStatus = (quantity) => {
     if (quantity <= 10) return 'low';

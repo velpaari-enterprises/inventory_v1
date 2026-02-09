@@ -2,6 +2,7 @@ const Purchase = require('../models/Purchase');
 const Product = require('../models/Product');
 const ProductItem = require('../models/ProductItem');
 const { generateBarcode } = require('../config/barcodeGenerator');
+const { emitEvent } = require('../utils/socket');
 
 // Get all purchases
 exports.getAllPurchases = async (req, res) => {
@@ -107,6 +108,8 @@ exports.createPurchase = async (req, res) => {
       .populate('vendor', 'name contactPerson')
       .populate('items.product', 'name category');
     
+    emitEvent('purchases:changed', { action: 'created', id: populatedPurchase._id });
+    emitEvent('inventory:changed', { action: 'purchase-created', id: populatedPurchase._id });
     res.status(201).json(populatedPurchase);
 
   } catch (error) {

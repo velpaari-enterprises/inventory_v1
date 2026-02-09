@@ -379,9 +379,10 @@ const SaleForm = ({ initialData, buyers, products, onSubmit, onCancel, loading }
     </Box>
   );
 };
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { OverlayTrigger, Popover, Row, Col, Form, FormGroup, Table as BootstrapTable, Badge } from "react-bootstrap";
 import { salesAPI, buyersAPI, productsAPI, barcodesAPI } from "../services/api";
+import { socket } from "../services/socket";
 import { PieChart, Pie, Cell, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts'; // Alias Tooltip to avoid conflict with MUI Tooltip
 import logo from '../logo.jpeg';
 import Quagga from "quagga";
@@ -934,25 +935,7 @@ const Sales = () => {
     comments: ""
   });
 
-  useEffect(() => {
-    fetchData();
-    return () => {
-      stopScanner();
-    };
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      await Promise.all([fetchSales(), fetchBuyers(), fetchProducts()]);
-    } catch (error) {
-      showError('Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchSales = async () => {
+  const fetchSales = useCallback(async () => {
     try {
       const response = await salesAPI.getAll();
       const salesData = response.data || [];
@@ -971,25 +954,59 @@ const Sales = () => {
       showError("Failed to fetch sales data");
       setSales([]);
     }
-  };
+  }, []);
 
-  const fetchBuyers = async () => {
+  const fetchBuyers = useCallback(async () => {
     try {
       const response = await buyersAPI.getAll();
       setBuyers(response.data);
     } catch (error) {
       console.error("Failed to fetch buyers");
     }
-  };
+  }, []);
 
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     try {
       const response = await productsAPI.getAll();
       setProducts(response.data);
     } catch (error) {
       console.error("Failed to fetch products:", error);
     }
-  };
+  }, []);
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      await Promise.all([fetchSales(), fetchBuyers(), fetchProducts()]);
+    } catch (error) {
+      showError('Failed to fetch data');
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchSales, fetchBuyers, fetchProducts]);
+
+  useEffect(() => {
+    fetchData();
+    return () => {
+      stopScanner();
+    };
+  }, [fetchData]);
+
+  useEffect(() => {
+    const handleSalesChange = () => {
+      fetchData();
+    };
+
+    socket.on('sales:changed', handleSalesChange);
+    socket.on('inventory:changed', handleSalesChange);
+    socket.on('products:changed', handleSalesChange);
+
+    return () => {
+      socket.off('sales:changed', handleSalesChange);
+      socket.off('inventory:changed', handleSalesChange);
+      socket.off('products:changed', handleSalesChange);
+    };
+  }, [fetchData]);
 
   const handleShowModal = () => {
     setShowModal(true);
