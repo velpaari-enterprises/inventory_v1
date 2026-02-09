@@ -1,10 +1,13 @@
 const mongoose = require("mongoose");
-
-const mongodburl ="mongodb+srv://Velpaarai_Enterprices:fOJxYQfIbKvSyKh8@inventory.pftntme.mongodb.net/?appName=inventory";
+require("dotenv").config();
 
 const connectDB = async () => {
   try {fOJxYQfIbKvSyKh8
-    await mongoose.connect(mongodburl);
+    const mongodbUrl = process.env.MONGODB_URI;
+    if (!mongodbUrl) {
+      throw new Error("MONGODB_URI is not set in the environment");
+    }
+    await mongoose.connect(mongodbUrl);
     console.log("✅ MongoDB Connected");
   } catch (error) {
     console.error("❌ MongoDB connection failed:", error.message);
@@ -13,3 +16,4 @@ const connectDB = async () => {
 };
 
 module.exports = connectDB;
+DEFAULT_PAGINATION_LIMIT
