@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 require("dotenv").config();
 
 const connectDB = async () => {
-  try {fOJxYQfIbKvSyKh8
+  try {
     const mongodbUrl = process.env.MONGODB_URI;
     if (!mongodbUrl) {
       throw new Error("MONGODB_URI is not set in the environment");
@@ -16,4 +16,3 @@ const connectDB = async () => {
 };
 
 module.exports = connectDB;
-DEFAULT_PAGINATION_LIMIT
