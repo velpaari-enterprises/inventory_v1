@@ -5,6 +5,7 @@ const dotenv = require('dotenv');
 const http = require('http');
 const connectDB = require('./config/db');
 const { initSocket } = require('./socket');
+const { getCorsOptions } = require('./config/cors');
 
 // Load env vars
 dotenv.config();
@@ -16,18 +17,7 @@ const app = express();
 const server = http.createServer(app);
 
 // Middleware
-const allowedOrigins = [
-  "https://inventory-management-tau-lac.vercel.app",
-  "https://textile-ayjb.vercel.app",
-  "http://localhost:3000",
-  "http://localhost:5173"
-];
-
-app.use(cors({
-  origin: allowedOrigins,
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
-}));
+app.use(cors(getCorsOptions()));
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 

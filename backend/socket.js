@@ -1,18 +1,17 @@
 const { Server } = require("socket.io");
-
-const allowedOrigins = [
-  "https://inventory-management-tau-lac.vercel.app",
-  "https://textile-ayjb.vercel.app",
-  "http://localhost:3000",
-  "http://localhost:5173"
-];
+const { isOriginAllowed } = require("./config/cors");
 
 let io;
 
 const initSocket = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: allowedOrigins,
+      origin: (origin, callback) => {
+        if (!origin || isOriginAllowed(origin)) {
+          return callback(null, true);
+        }
+        return callback(new Error("Not allowed by CORS"));
+      },
       methods: ["GET", "POST", "PUT", "DELETE"],
       credentials: true
     }
