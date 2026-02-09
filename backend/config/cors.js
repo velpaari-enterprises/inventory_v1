@@ -1,8 +1,6 @@
 const defaultOrigins = [
-  "https://inventory-management-tau-lac.vercel.app",
-  "https://textile-ayjb.vercel.app",
+  "https://inventory-v1-two.vercel.app",
   "http://localhost:3000",
-  "http://localhost:5173"
 ];
 
 const getAllowedOrigins = () => {
